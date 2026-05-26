@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CabKit Throughput Planner — GR8TOPS × Morgan Olson</title>
+<style>
+:root {
+  color-scheme: light;
+  --navy:       #0A2463;
+  --navy-mid:   #1a3a7c;
+  --navy-light: #e8edf8;
+  --red:        #C8102E;
+  --red-mid:    #a50d26;
+  --red-light:  #fdeaed;
+  --white:      #ffffff;
+  --offwhite:   #f5f7fb;
+  --steel:      #dde3ee;
+  --border:     #c8d0e0;
+  --text-dark:  #0d1b3e;
+  --text-mid:   #3d5080;
+  --text-muted: #7a8fb5;
+  --gold:       #c9952a;
+  --gold-light: #fdf4e3;
+  --green:      #1a7a4a;
+  --green-light:#e6f5ed;
+  --shadow-sm:  0 1px 4px rgba(10,36,99,0.10);
+  --shadow-md:  0 4px 16px rgba(10,36,99,0.13);
+  --shadow-lg:  0 8px 32px rgba(10,36,99,0.16);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--offwhite);
+  color: var(--text-dark);
+  min-height: 100vh;
+}
+
+/* ══ HEADER ══ */
+.header {
+  background: var(--navy);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+/* Red stripe at top */
+.header-stripe {
+  height: 6px;
+  background: var(--red);
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 36px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+/* Subtle star pattern overlay */
+.header::after {
+  content: '★  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★  ★';
+  position: absolute;
+  bottom: 8px; right: 20px;
+  font-size: 8px;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.08);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.brand-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 6px;
+}
+.brand-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: white;
+  letter-spacing: -0.3px;
+  line-height: 1.1;
+}
+.brand-title em {
+  font-style: normal;
+  color: #a8c2ff;
+}
+.brand-sub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 5px;
+  font-weight: 500;
+}
+.header-badges {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.hbadge {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.8);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+.hbadge.red {
+  background: var(--red);
+  border-color: var(--red-mid);
+  color: white;
+}
+
+/* ══ CONTROLS BAND ══ */
+.controls-band {
+  background: white;
+  border-bottom: 2px solid var(--steel);
+  padding: 0 36px;
+  box-shadow: var(--shadow-sm);
+}
+.controls-inner {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+/* Mold selector */
+.mold-section {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 24px 18px 0;
+  border-right: 1px solid var(--steel);
+  margin-right: 24px;
+}
+.ctrl-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.mold-btns {
+  display: flex;
+  gap: 8px;
+}
+.mold-btn {
+  width: 72px;
+  padding: 10px 6px;
+  background: var(--offwhite);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.18s ease;
+  position: relative;
+}
+.mold-btn:hover {
+  border-color: var(--navy);
+  background: var(--navy-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.mold-btn.active {
+  border-color: var(--navy);
+  background: var(--navy);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.btn-big {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--text-muted);
+  line-height: 1;
+  transition: color 0.18s;
+}
+.mold-btn.active .btn-big { color: white; }
+.mold-btn:hover:not(.active) .btn-big { color: var(--navy); }
+.btn-small {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 2px;
+  transition: color 0.18s;
+}
+.mold-btn.active .btn-small { color: rgba(255,255,255,0.7); }
+.mold-btn:hover:not(.active) .btn-small { color: var(--navy-mid); }
+.fastest-tag {
+  position: absolute;
+  top: -8px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--red);
+  color: white;
+  font-size: 7px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+/* Date section */
+.date-section {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 24px 18px 0;
+  border-right: 1px solid var(--steel);
+  margin-right: 24px;
+}
+.date-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.date-input {
+  background: var(--offwhite);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  color: var(--navy);
+  font-size: 15px;
+  font-weight: 700;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: border-color 0.18s;
+  outline: none;
+  font-family: inherit;
+}
+.date-input:focus, .date-input:hover { border-color: var(--navy); }
+.quick-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.qbtn {
+  padding: 7px 13px;
+  background: var(--offwhite);
+  border: 1.5px solid var(--border);
+  color: var(--text-mid);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+.qbtn:hover { border-color: var(--navy); color: var(--navy); background: var(--navy-light); }
+.qbtn.active-q { border-color: var(--red); color: var(--red); background: var(--red-light); }
+.quick-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 7px;
+}
+
+/* Disclaimer callout */
+.disclaimer-callout {
+  background: #fffbf0;
+  border: 1.5px solid #e8c84a;
+  border-left: 4px solid #c9952a;
+  border-radius: 6px;
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.disclaimer-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.disclaimer-text { font-size: 12px; color: #6b4a00; line-height: 1.5; }
+.disclaimer-text strong { color: #7a5800; font-weight: 700; }
+
+/* Program context */
+.context-section {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 0;
+  flex-wrap: wrap;
+}
+.ctx-stat {
+  text-align: center;
+}
+.ctx-num {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--navy);
+  line-height: 1;
+}
+.ctx-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.ctx-div {
+  width: 1px;
+  height: 36px;
+  background: var(--steel);
+}
+
+/* ══ RESULTS ══ */
+.results {
+  padding: 24px 36px;
+}
+
+/* KPI row */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.kpi-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.kpi-card:hover { box-shadow: var(--shadow-md); }
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+}
+.kpi-card.navy::before { background: var(--navy); }
+.kpi-card.red::before { background: var(--red); }
+.kpi-card.green::before { background: var(--green); }
+.kpi-card.gold::before { background: var(--gold); }
+.kpi-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.kpi-val {
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--text-dark);
+}
+.kpi-card.navy .kpi-val { color: var(--navy); }
+.kpi-card.red .kpi-val { color: var(--red); }
+.kpi-card.green .kpi-val { color: var(--green); }
+.kpi-card.gold .kpi-val { color: var(--gold); }
+.kpi-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 5px;
+  font-weight: 500;
+}
+.kpi-val.date-size {
+  font-size: 20px;
+  margin-top: 4px;
+  line-height: 1.3;
+}
+
+/* Progress */
+.progress-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 22px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.prog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+.prog-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.prog-pct {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--navy);
+}
+.prog-track {
+  height: 10px;
+  background: var(--steel);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.prog-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--navy), #1e5bb5);
+  transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+}
+.prog-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 6px; height: 100%;
+  background: rgba(255,255,255,0.4);
+  border-radius: 0 5px 5px 0;
+}
+.prog-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ══ SHIP SETS ══ */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.section-line {
+  flex: 1;
+  height: 1px;
+  background: var(--steel);
+}
+.ss-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.ss-card {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  transition: box-shadow 0.15s;
+}
+.ss-card:hover { box-shadow: var(--shadow-md); }
+.ss-card.done {
+  border-color: var(--green);
+  background: var(--green-light);
+}
+.ss-card.upcoming {
+  border-color: var(--border);
+  opacity: 0.5;
+}
+.ss-card.next-up {
+  border-color: var(--red);
+  background: var(--red-light);
+  box-shadow: 0 0 0 2px rgba(200,16,46,0.15), var(--shadow-sm);
+}
+.ss-card-num {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.ss-card.done .ss-card-num { color: var(--green); }
+.ss-card.next-up .ss-card-num { color: var(--red); }
+.ss-card-date {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-dark);
+  line-height: 1.2;
+}
+.ss-card.done .ss-card-date { color: var(--green); }
+.ss-card.next-up .ss-card-date { color: var(--red); }
+.ss-card-units {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.ss-badge {
+  position: absolute;
+  top: 8px; right: 8px;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.ss-badge.done { background: var(--green); color: white; }
+.ss-badge.next { background: var(--red); color: white; }
+.ss-badge.later { background: var(--steel); color: var(--text-muted); }
+
+/* ══ TIMELINE TABLE ══ */
+.timeline-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.tl-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--steel);
+  background: var(--offwhite);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.tl-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.tl-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tl-search {
+  background: white;
+  border: 1.5px solid var(--border);
+  color: var(--text-dark);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 5px;
+  outline: none;
+  width: 180px;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+.tl-search:focus { border-color: var(--navy); }
+.tl-filter {
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  background: white;
+  color: var(--text-muted);
+  transition: all 0.15s;
+  letter-spacing: 0.3px;
+}
+.tl-filter:hover { border-color: var(--navy); color: var(--navy); }
+.tl-filter.active { background: var(--navy); border-color: var(--navy); color: white; }
+
+.tl-wrap {
+  overflow-x: auto;
+  max-height: 480px;
+  overflow-y: auto;
+}
+.tl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tl-table thead tr {
+  background: var(--offwhite);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.tl-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  border-bottom: 2px solid var(--steel);
+  white-space: nowrap;
+}
+.tl-table td {
+  padding: 9px 16px;
+  border-bottom: 1px solid #f0f2f8;
+  vertical-align: middle;
+}
+.tl-table tr:last-child td { border-bottom: none; }
+.tl-table tr:hover td { background: var(--navy-light); }
+
+.row-milestone td {
+  background: linear-gradient(90deg, var(--gold-light), transparent 60%);
+  font-weight: 700;
+  color: #7a5800;
+  border-bottom: 1px solid #e8d9a0 !important;
+}
+.row-milestone:hover td { background: #fdf0c8 !important; }
+.row-done td { color: var(--text-muted); }
+
+/* Cutoff divider */
+.cutoff-divider td {
+  padding: 0;
+  border: none;
+}
+.cutoff-bar {
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--red), transparent);
+}
+.cutoff-label td {
+  padding: 5px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--red);
+  background: var(--red-light);
+  text-align: center;
+  border-bottom: 1px solid #f5c0c8;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.badge-m1 { background: #e8edf8; color: var(--navy); }
+.badge-m2 { background: #e8f0f8; color: #1a5c8a; }
+.badge-m3 { background: #f0e8f8; color: #5a1a8a; }
+.badge-m4 { background: #f8ede8; color: #8a3a1a; }
+.badge-done { background: var(--green-light); color: var(--green); }
+.badge-planned { background: var(--steel); color: var(--text-muted); }
+.badge-milestone { background: var(--gold-light); color: #7a5800; }
+.badge-setup { background: var(--steel); color: var(--text-muted); }
+
+/* ══ PROGRAM TARGET SELECTOR ══ */
+.target-section {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 24px 18px 0;
+  border-right: 1px solid var(--steel);
+  margin-right: 24px;
+}
+.target-select-wrap {
+  position: relative;
+}
+.target-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--offwhite);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  color: var(--navy);
+  font-size: 15px;
+  font-weight: 700;
+  padding: 9px 36px 9px 12px;
+  cursor: pointer;
+  transition: border-color 0.18s;
+  outline: none;
+  font-family: inherit;
+  min-width: 230px;
+}
+.target-select:focus, .target-select:hover { border-color: var(--navy); }
+.target-select-arrow {
+  pointer-events: none;
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.target-note {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 5px;
+  font-style: italic;
+}
+
+/* ══ MOLD SCALE PROJECTOR ══ */
+.projector-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+}
+.projector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--offwhite);
+  border-bottom: 1px solid var(--steel);
+  cursor: pointer;
+  user-select: none;
+}
+.projector-header:hover { background: var(--navy-light); }
+.projector-title-block { display: flex; align-items: center; gap: 12px; }
+.projector-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.proj-badge {
+  font-size: 9px; font-weight: 800; padding: 2px 8px;
+  border-radius: 3px; letter-spacing: 1px; text-transform: uppercase;
+  background: var(--gold-light); color: #7a5800; border: 1px solid #e8c84a;
+}
+.projector-toggle { font-size: 13px; color: var(--text-muted); transition: transform 0.2s; }
+.projector-toggle.open { transform: rotate(180deg); }
+.projector-body { padding: 20px 24px; }
+.projector-disclaimer {
+  font-size: 11px; color: var(--text-muted); font-style: italic;
+  margin-bottom: 18px; padding: 8px 12px;
+  background: var(--gold-light); border-radius: 4px;
+  border-left: 3px solid var(--gold);
+}
+.gantt-legend {
+  display: flex; gap: 18px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.gantt-legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); font-weight: 600; }
+.legend-swatch { width: 16px; height: 10px; border-radius: 2px; }
+.legend-navy { background: var(--navy); }
+.legend-red { background: var(--red); }
+.legend-plan { background: repeating-linear-gradient(45deg, var(--red), var(--red) 3px, #f7b8c2 3px, #f7b8c2 6px); }
+.legend-gray { background: var(--steel); }
+
+.gantt-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 7px; min-height: 32px;
+}
+.gantt-label {
+  width: 90px; flex-shrink: 0; text-align: right;
+  font-size: 12px; font-weight: 700; color: var(--text-dark);
+}
+.gantt-label .confirmed-dot {
+  display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--green); margin-right: 4px;
+  vertical-align: middle;
+}
+.gantt-label .proj-dot {
+  display: inline-block; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--gold); margin-right: 4px;
+  vertical-align: middle;
+}
+.gantt-track { flex: 1; height: 22px; background: var(--steel); border-radius: 3px; overflow: hidden; display: flex; }
+.gantt-fixed { background: var(--navy); height: 100%; }
+.gantt-var-confirmed { background: var(--red); height: 100%; }
+.gantt-var-projected {
+  background: repeating-linear-gradient(45deg, var(--red), var(--red) 4px, #f7b8c2 4px, #f7b8c2 8px);
+  height: 100%;
+}
+.gantt-date {
+  width: 100px; flex-shrink: 0;
+  font-size: 11px; font-weight: 700; color: var(--text-mid);
+}
+.gantt-date.confirmed-date { color: var(--navy); }
+.gantt-savings {
+  font-size: 10px; color: var(--green); font-weight: 700;
+  white-space: nowrap;
+}
+.gantt-divider {
+  height: 1px; background: var(--steel); margin: 10px 0;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 16px 36px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--steel);
+  background: white;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<div class="header-stripe"></div>
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div class="brand-eyebrow">Morgan Olson · Kestrel Program</div>
+      <div class="brand-title">Kestrel Cab-Back Program — <em>Production Throughput Planner</em></div>
+      <div class="brand-sub">Select active mold count and a target date to see projected unit delivery</div>
+    </div>
+    <div class="header-badges">
+      <div class="hbadge red">● LIVE SCHEDULE</div>
+      <div class="hbadge" id="headerBadgeUnits">71 CabKits</div>
+      <div class="hbadge">16 Ship Sets</div>
+      <div class="hbadge" id="syncStamp" title="Date schedule data was last synced from Smartsheet master">🔄 Synced: May 19, 2026</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONTROLS ══ -->
+<div class="controls-band">
+  <div class="controls-inner">
+    <!-- Mold selector -->
+    <div class="mold-section">
+      <div class="ctrl-label">Active Mold Count</div>
+      <div class="mold-btns">
+        <button class="mold-btn" data-scenario="1 Mold" onclick="selectScenario('1 Mold',this)">
+          <div class="btn-big">1</div>
+          <div class="btn-small">MOLD</div>
+        </button>
+        <button class="mold-btn" data-scenario="2 Molds" onclick="selectScenario('2 Molds',this)">
+          <div class="btn-big">2</div>
+          <div class="btn-small">MOLDS</div>
+        </button>
+        <button class="mold-btn" data-scenario="3 Molds" onclick="selectScenario('3 Molds',this)">
+          <div class="btn-big">3</div>
+          <div class="btn-small">MOLDS</div>
+        </button>
+        <button class="mold-btn active" data-scenario="4 Molds" onclick="selectScenario('4 Molds',this)">
+          <div class="fastest-tag">FASTEST</div>
+          <div class="btn-big">4</div>
+          <div class="btn-small">MOLDS</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Program Target selector -->
+    <div class="target-section">
+      <div class="ctrl-label">Program Target</div>
+      <div class="target-select-wrap">
+        <select class="target-select" id="programTargetSelect" onchange="selectTarget(this.value)">
+          <option value="71">71 CabKits — Phase 1 (Short Run Spin Up)</option>
+          <option value="602">602 Units — 2026 Annual Target</option>
+          <option value="1190">1,190 Units — Through 2027</option>
+          <option value="2911">2,911 Units — Through 2028</option>
+          <option value="4928">4,928 Units — Through 2029</option>
+          <option value="6009">6,009 Units — Through 2030</option>
+        </select>
+        <div class="target-select-arrow">▼</div>
+      </div>
+      <div class="target-note">From Kestrel Commercial Ramp Plan</div>
+    </div>
+
+    <!-- Date selector -->
+    <div class="date-section">
+      <div class="ctrl-label">Target Date — How many units by?</div>
+      <div class="date-row">
+        <input type="date" class="date-input" id="targetDate" onchange="updateDashboard()">
+      </div>
+      <div class="quick-label" style="margin-top:10px;">Jump to Quarter</div>
+      <div class="quick-btns" id="quickBtns"></div>
+    </div>
+
+    <!-- Context stats -->
+    <div class="context-section">
+      <div class="ctx-stat">
+        <div class="ctx-num" id="ctxFullDate">—</div>
+        <div class="ctx-lbl">Full Run Complete</div>
+      </div>
+      <div class="ctx-div"></div>
+      <div class="ctx-stat">
+        <div class="ctx-num" id="ctxTotalUnits">71</div>
+        <div class="ctx-lbl" id="ctxTotalLabel">Program Target</div>
+      </div>
+      <div class="ctx-div"></div>
+      <div class="ctx-stat">
+        <div class="ctx-num">16</div>
+        <div class="ctx-lbl">Ship Sets</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RESULTS ══ -->
+<div class="results">
+
+  <!-- KPIs -->
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <!-- Progress -->
+  <div class="progress-card" id="progressCard"></div>
+
+  <!-- Planning Disclaimer -->
+  <div class="disclaimer-callout" id="planningDisclaimer">
+    <div class="disclaimer-icon">⚠</div>
+    <div class="disclaimer-text">
+      <strong>Planning Note:</strong> Units #28 and beyond (including all future program phases) are shown for <strong>forecasting and planning purposes only</strong> and do not represent confirmed manufacturing commitments. Confirmed production applies to Units #1–27 of the current short run spin-up schedule.
+    </div>
+  </div>
+
+  <!-- Ship Sets -->
+  <div class="section-header">
+    <div class="section-title">Ship Set Delivery Status</div>
+    <div class="section-line"></div>
+  </div>
+  <div class="ss-grid" id="ssGrid"></div>
+
+  <!-- Timeline -->
+  <div class="timeline-card">
+    <div class="tl-controls">
+      <div class="tl-title">Full Production Timeline</div>
+      <div class="tl-right">
+        <input type="text" class="tl-search" placeholder="Search tasks..." oninput="filterTimeline(this.value)" id="tlSearch">
+        <button class="tl-filter active" onclick="setTlFilter('all',this)">All</button>
+        <button class="tl-filter" onclick="setTlFilter('Ship Set Milestone',this)">Ship Sets</button>
+        <button class="tl-filter" onclick="setTlFilter('Unit',this)">Units</button>
+        <button class="tl-filter" onclick="setTlFilter('Setup Task',this)">Setup</button>
+        <div style="width:1px;height:20px;background:var(--steel);margin:0 4px;"></div>
+        <button class="tl-filter active" id="completedToggleBtn" onclick="toggleCompleted(this)" title="Toggle completed items">✓ Completed</button>
+      </div>
+    </div>
+    <div class="tl-wrap">
+      <table class="tl-table">
+        <thead>
+          <tr>
+            <th>Task / CabKit</th>
+            <th>Mold</th>
+            <th>Start</th>
+            <th>Finish</th>
+            <th>Status</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody id="tlBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ MOLD SCALE PROJECTOR ══ -->
+<div class="results" style="padding-top:0;">
+  <div class="projector-card" id="projectorCard">
+    <div class="projector-header" onclick="toggleProjector()">
+      <div class="projector-title-block">
+        <div class="projector-title">Mold Scale Projector — Up to 20 Molds</div>
+        <span class="proj-badge">Planning Only</span>
+      </div>
+      <div class="projector-toggle" id="projToggleIcon">▼</div>
+    </div>
+    <div class="projector-body" id="projectorBody" style="display:none;">
+      <div class="projector-disclaimer">
+        ⚠ All projections for 5+ molds are <strong>mathematical estimates</strong> based on observed throughput rates from the current 2-mold production calendar. They are provided for capacity planning only and do not represent confirmed tooling, manufacturing, or delivery commitments. Confirmed scenarios: <strong>1–4 molds</strong>.
+      </div>
+      <div class="gantt-legend">
+        <div class="gantt-legend-item"><div class="legend-swatch legend-navy"></div>Fixed phase (Units 1–27, 1 mold)</div>
+        <div class="gantt-legend-item"><div class="legend-swatch legend-red"></div>Confirmed scale phase (1–4 molds)</div>
+        <div class="gantt-legend-item"><div class="legend-swatch legend-plan"></div>Projected scale phase (5+ molds)</div>
+        <div class="gantt-legend-item"><div class="legend-swatch legend-gray"></div>Remaining capacity</div>
+      </div>
+      <div id="ganttRows"></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Morgan Olson · Kestrel Cab-Back Program · Proprietary &amp; Confidential · Updated May 2026
+</div>
+
+<script>
+const SCENARIOS = {"1 Mold":[{"name":"Mold Retrieval","start":"2026-04-03","finish":"2026-04-03","mold":"","status":"Complete","type":"Setup Task"},{"name":"Analyze Mold Status","start":"2026-04-06","finish":"2026-04-06","mold":"","status":"Complete","type":"Setup Task"},{"name":"Develop Mold Repair Plan","start":"2026-04-07","finish":"2026-04-09","mold":"","status":"Complete","type":"Setup Task"},{"name":"Execute Mold Repair Plan","start":"2026-04-10","finish":"2026-04-22","mold":"","status":"Complete","type":"Setup Task"},{"name":"Approval/PO Mold 2","start":"2026-06-01","finish":"2026-06-15","mold":"","status":"Planned","type":"Setup Task"},{"name":"CabKit #1","start":"2026-04-23","finish":"2026-05-01","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #2","start":"2026-05-04","finish":"2026-05-06","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #3","start":"2026-05-07","finish":"2026-05-11","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #4","start":"2026-05-12","finish":"2026-05-13","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #5","start":"2026-05-14","finish":"2026-05-19","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #6","start":"2026-05-20","finish":"2026-05-25","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #7","start":"2026-05-26","finish":"2026-05-29","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #8","start":"2026-06-01","finish":"2026-06-04","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #9","start":"2026-06-05","finish":"2026-06-09","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #10","start":"2026-06-10","finish":"2026-06-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #11","start":"2026-06-16","finish":"2026-06-18","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #12","start":"2026-06-19","finish":"2026-06-23","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #13","start":"2026-06-24","finish":"2026-06-26","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #14","start":"2026-06-29","finish":"2026-07-01","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #15","start":"2026-07-02","finish":"2026-07-06","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #16","start":"2026-07-07","finish":"2026-07-09","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #17","start":"2026-07-10","finish":"2026-07-14","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #18","start":"2026-07-15","finish":"2026-07-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #19","start":"2026-07-20","finish":"2026-07-22","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #20","start":"2026-07-23","finish":"2026-07-27","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #21","start":"2026-07-28","finish":"2026-07-30","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #22","start":"2026-07-31","finish":"2026-08-04","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #23","start":"2026-08-05","finish":"2026-08-07","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #24","start":"2026-08-10","finish":"2026-08-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #25","start":"2026-08-13","finish":"2026-08-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #26","start":"2026-08-18","finish":"2026-08-20","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #27","start":"2026-08-21","finish":"2026-08-25","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 1 — Target: May 07, 2026 | Units #1–#2","start":"2026-05-07","finish":"2026-05-07","mold":"","status":"Complete","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 2 — Target: May 14, 2026 | Units #3–#4","start":"2026-05-14","finish":"2026-05-14","mold":"","status":"Complete","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 3 — Target: May 26, 2026 | Units #5–#7","start":"2026-05-26","finish":"2026-05-26","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 4 — Target: Jun 05, 2026 | Units #8–#9","start":"2026-06-05","finish":"2026-06-05","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 5 — Target: Jun 24, 2026 | Units #10–#13","start":"2026-06-24","finish":"2026-06-24","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 6 — Target: Jul 10, 2026 | Units #14–#17","start":"2026-07-10","finish":"2026-07-10","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 7 — Target: Jul 28, 2026 | Units #18–#21","start":"2026-07-28","finish":"2026-07-28","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 8 — Target: Aug 13, 2026 | Units #22–#27","start":"2026-08-13","finish":"2026-08-13","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #28","start":"2026-08-24","finish":"2026-08-27","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #29","start":"2026-08-28","finish":"2026-09-02","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #30","start":"2026-09-03","finish":"2026-09-08","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #31","start":"2026-09-09","finish":"2026-09-14","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #32","start":"2026-09-15","finish":"2026-09-18","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #33","start":"2026-09-21","finish":"2026-09-24","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 9 — Target: Sep 24, 2026 | Units #28–#33 (6 units)","start":"2026-09-24","finish":"2026-09-24","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #34","start":"2026-09-25","finish":"2026-09-30","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #35","start":"2026-10-01","finish":"2026-10-06","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #36","start":"2026-10-07","finish":"2026-10-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #37","start":"2026-10-13","finish":"2026-10-16","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #38","start":"2026-10-19","finish":"2026-10-22","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #39","start":"2026-10-23","finish":"2026-10-28","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 10 — Target: Oct 28, 2026 | Units #34–#39 (6 units)","start":"2026-10-28","finish":"2026-10-28","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #40","start":"2026-10-29","finish":"2026-11-03","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #41","start":"2026-11-04","finish":"2026-11-09","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #42","start":"2026-11-10","finish":"2026-11-13","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #43","start":"2026-11-16","finish":"2026-11-19","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #44","start":"2026-11-20","finish":"2026-11-25","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #45","start":"2026-11-26","finish":"2026-12-01","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 11 — Target: Dec 01, 2026 | Units #40–#45 (6 units)","start":"2026-12-01","finish":"2026-12-01","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #46","start":"2026-12-02","finish":"2026-12-07","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #47","start":"2026-12-08","finish":"2026-12-11","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #48","start":"2026-12-14","finish":"2026-12-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #49","start":"2026-12-18","finish":"2026-12-23","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #50","start":"2026-12-24","finish":"2026-12-29","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #51","start":"2026-12-30","finish":"2027-01-04","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 12 — Target: Jan 04, 2027 | Units #46–#51 (6 units)","start":"2027-01-04","finish":"2027-01-04","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #52","start":"2027-01-05","finish":"2027-01-08","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #53","start":"2027-01-11","finish":"2027-01-14","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #54","start":"2027-01-15","finish":"2027-01-20","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #55","start":"2027-01-21","finish":"2027-01-26","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #56","start":"2027-01-27","finish":"2027-02-01","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #57","start":"2027-02-02","finish":"2027-02-05","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 13 — Target: Feb 05, 2027 | Units #52–#57 (6 units)","start":"2027-02-05","finish":"2027-02-05","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #58","start":"2027-02-08","finish":"2027-02-11","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #59","start":"2027-02-12","finish":"2027-02-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #60","start":"2027-02-18","finish":"2027-02-23","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #61","start":"2027-02-24","finish":"2027-03-01","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #62","start":"2027-03-02","finish":"2027-03-05","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #63","start":"2027-03-08","finish":"2027-03-11","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 14 — Target: Mar 11, 2027 | Units #58–#63 (6 units)","start":"2027-03-11","finish":"2027-03-11","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #64","start":"2027-03-12","finish":"2027-03-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #65","start":"2027-03-18","finish":"2027-03-23","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #66","start":"2027-03-24","finish":"2027-03-29","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #67","start":"2027-03-30","finish":"2027-04-02","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #68","start":"2027-04-05","finish":"2027-04-08","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #69","start":"2027-04-09","finish":"2027-04-14","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 15 — Target: Apr 14, 2027 | Units #64–#69 (6 units)","start":"2027-04-14","finish":"2027-04-14","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #70","start":"2027-04-15","finish":"2027-04-20","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #71","start":"2027-04-21","finish":"2027-04-26","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 16 — Target: Apr 26, 2027 | Units #70–#71 (2 units)","start":"2027-04-26","finish":"2027-04-26","mold":"","status":"","type":"Ship Set Milestone"}],"2 Molds":[{"name":"Mold Retrieval","start":"2026-04-03","finish":"2026-04-03","mold":"","status":"Complete","type":"Setup Task"},{"name":"Analyze Mold Status","start":"2026-04-06","finish":"2026-04-06","mold":"","status":"Complete","type":"Setup Task"},{"name":"Develop Mold Repair Plan","start":"2026-04-07","finish":"2026-04-09","mold":"","status":"Complete","type":"Setup Task"},{"name":"Execute Mold Repair Plan","start":"2026-04-10","finish":"2026-04-22","mold":"","status":"Complete","type":"Setup Task"},{"name":"Approval/PO Mold 2","start":"2026-06-01","finish":"2026-06-15","mold":"","status":"Planned","type":"Setup Task"},{"name":"CabKit #1","start":"2026-04-23","finish":"2026-05-01","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #2","start":"2026-05-04","finish":"2026-05-06","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #3","start":"2026-05-07","finish":"2026-05-11","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #4","start":"2026-05-12","finish":"2026-05-13","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #5","start":"2026-05-14","finish":"2026-05-19","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #6","start":"2026-05-20","finish":"2026-05-25","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #7","start":"2026-05-26","finish":"2026-05-29","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #8","start":"2026-06-01","finish":"2026-06-04","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #9","start":"2026-06-05","finish":"2026-06-09","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #10","start":"2026-06-10","finish":"2026-06-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #11","start":"2026-06-16","finish":"2026-06-18","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #12","start":"2026-06-19","finish":"2026-06-23","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #13","start":"2026-06-24","finish":"2026-06-26","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #14","start":"2026-06-29","finish":"2026-07-01","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #15","start":"2026-07-02","finish":"2026-07-06","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #16","start":"2026-07-07","finish":"2026-07-09","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #17","start":"2026-07-10","finish":"2026-07-14","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #18","start":"2026-07-15","finish":"2026-07-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #19","start":"2026-07-20","finish":"2026-07-22","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #20","start":"2026-07-23","finish":"2026-07-27","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #21","start":"2026-07-28","finish":"2026-07-30","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #22","start":"2026-07-31","finish":"2026-08-04","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #23","start":"2026-08-05","finish":"2026-08-07","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #24","start":"2026-08-10","finish":"2026-08-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #25","start":"2026-08-13","finish":"2026-08-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #26","start":"2026-08-18","finish":"2026-08-20","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #27","start":"2026-08-21","finish":"2026-08-25","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 1 — Target: May 07, 2026 | Units #1–#2","start":"2026-05-07","finish":"2026-05-07","mold":"","status":"Complete","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 2 — Target: May 14, 2026 | Units #3–#4","start":"2026-05-14","finish":"2026-05-14","mold":"","status":"Complete","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 3 — Target: May 26, 2026 | Units #5–#7","start":"2026-05-26","finish":"2026-05-26","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 4 — Target: Jun 05, 2026 | Units #8–#9","start":"2026-06-05","finish":"2026-06-05","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 5 — Target: Jun 24, 2026 | Units #10–#13","start":"2026-06-24","finish":"2026-06-24","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 6 — Target: Jul 10, 2026 | Units #14–#17","start":"2026-07-10","finish":"2026-07-10","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 7 — Target: Jul 28, 2026 | Units #18–#21","start":"2026-07-28","finish":"2026-07-28","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 8 — Target: Aug 13, 2026 | Units #22–#27","start":"2026-08-13","finish":"2026-08-13","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #28","start":"2026-08-24","finish":"2026-08-27","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #29","start":"2026-08-26","finish":"2026-08-31","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #30","start":"2026-08-28","finish":"2026-09-02","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #31","start":"2026-09-01","finish":"2026-09-04","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #32","start":"2026-09-03","finish":"2026-09-08","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #33","start":"2026-09-07","finish":"2026-09-10","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 9 — Target: Sep 10, 2026 | Units #28–#33 (6 units)","start":"2026-09-10","finish":"2026-09-10","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #34","start":"2026-09-09","finish":"2026-09-14","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #35","start":"2026-09-11","finish":"2026-09-16","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #36","start":"2026-09-15","finish":"2026-09-18","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #37","start":"2026-09-17","finish":"2026-09-22","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #38","start":"2026-09-21","finish":"2026-09-24","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #39","start":"2026-09-23","finish":"2026-09-28","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 10 — Target: Sep 28, 2026 | Units #34–#39 (6 units)","start":"2026-09-28","finish":"2026-09-28","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #40","start":"2026-09-25","finish":"2026-09-30","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #41","start":"2026-09-29","finish":"2026-10-02","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #42","start":"2026-10-01","finish":"2026-10-06","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #43","start":"2026-10-05","finish":"2026-10-08","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #44","start":"2026-10-07","finish":"2026-10-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #45","start":"2026-10-09","finish":"2026-10-14","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 11 — Target: Oct 14, 2026 | Units #40–#45 (6 units)","start":"2026-10-14","finish":"2026-10-14","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #46","start":"2026-10-13","finish":"2026-10-16","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #47","start":"2026-10-15","finish":"2026-10-20","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #48","start":"2026-10-19","finish":"2026-10-22","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #49","start":"2026-10-21","finish":"2026-10-26","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #50","start":"2026-10-23","finish":"2026-10-28","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #51","start":"2026-10-27","finish":"2026-10-30","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 12 — Target: Oct 30, 2026 | Units #46–#51 (6 units)","start":"2026-10-30","finish":"2026-10-30","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #52","start":"2026-10-29","finish":"2026-11-03","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #53","start":"2026-11-02","finish":"2026-11-05","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #54","start":"2026-11-04","finish":"2026-11-09","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #55","start":"2026-11-06","finish":"2026-11-11","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #56","start":"2026-11-10","finish":"2026-11-13","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #57","start":"2026-11-12","finish":"2026-11-17","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 13 — Target: Nov 17, 2026 | Units #52–#57 (6 units)","start":"2026-11-17","finish":"2026-11-17","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #58","start":"2026-11-16","finish":"2026-11-19","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #59","start":"2026-11-18","finish":"2026-11-23","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #60","start":"2026-11-20","finish":"2026-11-25","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #61","start":"2026-11-24","finish":"2026-11-27","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #62","start":"2026-11-26","finish":"2026-12-01","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #63","start":"2026-11-30","finish":"2026-12-03","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 14 — Target: Dec 03, 2026 | Units #58–#63 (6 units)","start":"2026-12-03","finish":"2026-12-03","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #64","start":"2026-12-02","finish":"2026-12-07","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #65","start":"2026-12-04","finish":"2026-12-09","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #66","start":"2026-12-08","finish":"2026-12-11","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #67","start":"2026-12-10","finish":"2026-12-15","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #68","start":"2026-12-14","finish":"2026-12-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #69","start":"2026-12-16","finish":"2026-12-21","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 15 — Target: Dec 21, 2026 | Units #64–#69 (6 units)","start":"2026-12-21","finish":"2026-12-21","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #70","start":"2026-12-18","finish":"2026-12-23","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #71","start":"2026-12-22","finish":"2026-12-25","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 16 — Target: Dec 25, 2026 | Units #70–#71 (2 units)","start":"2026-12-25","finish":"2026-12-25","mold":"","status":"","type":"Ship Set Milestone"}],"3 Molds":[{"name":"Mold Retrieval","start":"2026-04-03","finish":"2026-04-03","mold":"","status":"Complete","type":"Setup Task"},{"name":"Analyze Mold Status","start":"2026-04-06","finish":"2026-04-06","mold":"","status":"Complete","type":"Setup Task"},{"name":"Develop Mold Repair Plan","start":"2026-04-07","finish":"2026-04-09","mold":"","status":"Complete","type":"Setup Task"},{"name":"Execute Mold Repair Plan","start":"2026-04-10","finish":"2026-04-22","mold":"","status":"Complete","type":"Setup Task"},{"name":"Approval/PO Mold 2","start":"2026-06-01","finish":"2026-06-15","mold":"","status":"Planned","type":"Setup Task"},{"name":"CabKit #1","start":"2026-04-23","finish":"2026-05-01","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #2","start":"2026-05-04","finish":"2026-05-06","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #3","start":"2026-05-07","finish":"2026-05-11","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #4","start":"2026-05-12","finish":"2026-05-13","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #5","start":"2026-05-14","finish":"2026-05-19","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #6","start":"2026-05-20","finish":"2026-05-25","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #7","start":"2026-05-26","finish":"2026-05-29","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #8","start":"2026-06-01","finish":"2026-06-04","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #9","start":"2026-06-05","finish":"2026-06-09","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #10","start":"2026-06-10","finish":"2026-06-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #11","start":"2026-06-16","finish":"2026-06-18","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #12","start":"2026-06-19","finish":"2026-06-23","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #13","start":"2026-06-24","finish":"2026-06-26","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #14","start":"2026-06-29","finish":"2026-07-01","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #15","start":"2026-07-02","finish":"2026-07-06","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #16","start":"2026-07-07","finish":"2026-07-09","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #17","start":"2026-07-10","finish":"2026-07-14","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #18","start":"2026-07-15","finish":"2026-07-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #19","start":"2026-07-20","finish":"2026-07-22","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #20","start":"2026-07-23","finish":"2026-07-27","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #21","start":"2026-07-28","finish":"2026-07-30","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #22","start":"2026-07-31","finish":"2026-08-04","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #23","start":"2026-08-05","finish":"2026-08-07","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #24","start":"2026-08-10","finish":"2026-08-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #25","start":"2026-08-13","finish":"2026-08-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #26","start":"2026-08-18","finish":"2026-08-20","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #27","start":"2026-08-21","finish":"2026-08-25","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 1 — Target: May 07, 2026 | Units #1–#2","start":"2026-05-07","finish":"2026-05-07","mold":"","status":"Complete","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 2 — Target: May 14, 2026 | Units #3–#4","start":"2026-05-14","finish":"2026-05-14","mold":"","status":"Complete","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 3 — Target: May 26, 2026 | Units #5–#7","start":"2026-05-26","finish":"2026-05-26","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 4 — Target: Jun 05, 2026 | Units #8–#9","start":"2026-06-05","finish":"2026-06-05","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 5 — Target: Jun 24, 2026 | Units #10–#13","start":"2026-06-24","finish":"2026-06-24","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 6 — Target: Jul 10, 2026 | Units #14–#17","start":"2026-07-10","finish":"2026-07-10","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 7 — Target: Jul 28, 2026 | Units #18–#21","start":"2026-07-28","finish":"2026-07-28","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 8 — Target: Aug 13, 2026 | Units #22–#27","start":"2026-08-13","finish":"2026-08-13","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #28","start":"2026-08-24","finish":"2026-08-27","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #29","start":"2026-08-26","finish":"2026-08-31","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #31","start":"2026-08-28","finish":"2026-09-02","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #30","start":"2026-08-28","finish":"2026-09-02","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #32","start":"2026-09-01","finish":"2026-09-04","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #33","start":"2026-09-03","finish":"2026-09-08","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 9 — Target: Sep 08, 2026 | Units #28–#33 (6 units)","start":"2026-09-08","finish":"2026-09-08","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #34","start":"2026-09-03","finish":"2026-09-08","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #35","start":"2026-09-07","finish":"2026-09-10","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #37","start":"2026-09-09","finish":"2026-09-14","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #36","start":"2026-09-09","finish":"2026-09-14","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #38","start":"2026-09-11","finish":"2026-09-16","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #39","start":"2026-09-15","finish":"2026-09-18","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 10 — Target: Sep 18, 2026 | Units #34–#39 (6 units)","start":"2026-09-18","finish":"2026-09-18","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #40","start":"2026-09-15","finish":"2026-09-18","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #41","start":"2026-09-17","finish":"2026-09-22","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #43","start":"2026-09-21","finish":"2026-09-24","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #42","start":"2026-09-21","finish":"2026-09-24","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #44","start":"2026-09-23","finish":"2026-09-28","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #45","start":"2026-09-25","finish":"2026-09-30","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 11 — Target: Sep 30, 2026 | Units #40–#45 (6 units)","start":"2026-09-30","finish":"2026-09-30","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #46","start":"2026-09-25","finish":"2026-09-30","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #47","start":"2026-09-29","finish":"2026-10-02","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #49","start":"2026-10-01","finish":"2026-10-06","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #48","start":"2026-10-01","finish":"2026-10-06","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #50","start":"2026-10-05","finish":"2026-10-08","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #51","start":"2026-10-07","finish":"2026-10-12","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 12 — Target: Oct 12, 2026 | Units #46–#51 (6 units)","start":"2026-10-12","finish":"2026-10-12","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #52","start":"2026-10-07","finish":"2026-10-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #53","start":"2026-10-09","finish":"2026-10-14","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #55","start":"2026-10-13","finish":"2026-10-16","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #54","start":"2026-10-13","finish":"2026-10-16","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #56","start":"2026-10-15","finish":"2026-10-20","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #57","start":"2026-10-19","finish":"2026-10-22","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 13 — Target: Oct 22, 2026 | Units #52–#57 (6 units)","start":"2026-10-22","finish":"2026-10-22","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #58","start":"2026-10-19","finish":"2026-10-22","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #59","start":"2026-10-21","finish":"2026-10-26","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #61","start":"2026-10-23","finish":"2026-10-28","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #60","start":"2026-10-23","finish":"2026-10-28","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #62","start":"2026-10-27","finish":"2026-10-30","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #63","start":"2026-10-29","finish":"2026-11-03","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 14 — Target: Nov 03, 2026 | Units #58–#63 (6 units)","start":"2026-11-03","finish":"2026-11-03","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #64","start":"2026-10-29","finish":"2026-11-03","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #65","start":"2026-11-02","finish":"2026-11-05","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #67","start":"2026-11-04","finish":"2026-11-09","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #66","start":"2026-11-04","finish":"2026-11-09","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #68","start":"2026-11-06","finish":"2026-11-11","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #69","start":"2026-11-10","finish":"2026-11-13","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 15 — Target: Nov 13, 2026 | Units #64–#69 (6 units)","start":"2026-11-13","finish":"2026-11-13","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #70","start":"2026-11-10","finish":"2026-11-13","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #71","start":"2026-11-12","finish":"2026-11-17","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 16 — Target: Nov 17, 2026 | Units #70–#71 (2 units)","start":"2026-11-17","finish":"2026-11-17","mold":"","status":"","type":"Ship Set Milestone"}],"4 Molds":[{"name":"Mold Retrieval","start":"2026-04-03","finish":"2026-04-03","mold":"","status":"Complete","type":"Setup Task"},{"name":"Analyze Mold Status","start":"2026-04-06","finish":"2026-04-06","mold":"","status":"Complete","type":"Setup Task"},{"name":"Develop Mold Repair Plan","start":"2026-04-07","finish":"2026-04-09","mold":"","status":"Complete","type":"Setup Task"},{"name":"Execute Mold Repair Plan","start":"2026-04-10","finish":"2026-04-22","mold":"","status":"Complete","type":"Setup Task"},{"name":"Approval/PO Mold 2","start":"2026-06-01","finish":"2026-06-15","mold":"","status":"Planned","type":"Setup Task"},{"name":"CabKit #1","start":"2026-04-23","finish":"2026-05-01","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #2","start":"2026-05-04","finish":"2026-05-06","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #3","start":"2026-05-07","finish":"2026-05-11","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #4","start":"2026-05-12","finish":"2026-05-13","mold":"Mold 1","status":"Complete","type":"Unit"},{"name":"CabKit #5","start":"2026-05-14","finish":"2026-05-19","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #6","start":"2026-05-20","finish":"2026-05-25","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #7","start":"2026-05-26","finish":"2026-05-29","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #8","start":"2026-06-01","finish":"2026-06-04","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #9","start":"2026-06-05","finish":"2026-06-09","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #10","start":"2026-06-10","finish":"2026-06-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #11","start":"2026-06-16","finish":"2026-06-18","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #12","start":"2026-06-19","finish":"2026-06-23","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #13","start":"2026-06-24","finish":"2026-06-26","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #14","start":"2026-06-29","finish":"2026-07-01","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #15","start":"2026-07-02","finish":"2026-07-06","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #16","start":"2026-07-07","finish":"2026-07-09","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #17","start":"2026-07-10","finish":"2026-07-14","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #18","start":"2026-07-15","finish":"2026-07-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #19","start":"2026-07-20","finish":"2026-07-22","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #20","start":"2026-07-23","finish":"2026-07-27","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #21","start":"2026-07-28","finish":"2026-07-30","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #22","start":"2026-07-31","finish":"2026-08-04","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #23","start":"2026-08-05","finish":"2026-08-07","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #24","start":"2026-08-10","finish":"2026-08-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #25","start":"2026-08-13","finish":"2026-08-17","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #26","start":"2026-08-18","finish":"2026-08-20","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #27","start":"2026-08-21","finish":"2026-08-25","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 1 — Target: May 07, 2026 | Units #1–#2","start":"2026-05-07","finish":"2026-05-07","mold":"","status":"Complete","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 2 — Target: May 14, 2026 | Units #3–#4","start":"2026-05-14","finish":"2026-05-14","mold":"","status":"Complete","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 3 — Target: May 26, 2026 | Units #5–#7","start":"2026-05-26","finish":"2026-05-26","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 4 — Target: Jun 05, 2026 | Units #8–#9","start":"2026-06-05","finish":"2026-06-05","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 5 — Target: Jun 24, 2026 | Units #10–#13","start":"2026-06-24","finish":"2026-06-24","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 6 — Target: Jul 10, 2026 | Units #14–#17","start":"2026-07-10","finish":"2026-07-10","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 7 — Target: Jul 28, 2026 | Units #18–#21","start":"2026-07-28","finish":"2026-07-28","mold":"","status":"","type":"Ship Set Milestone"},{"name":"⚑ Ship Set 8 — Target: Aug 13, 2026 | Units #22–#27","start":"2026-08-13","finish":"2026-08-13","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #28","start":"2026-08-24","finish":"2026-08-27","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #29","start":"2026-08-26","finish":"2026-08-31","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #32","start":"2026-08-28","finish":"2026-09-02","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #30","start":"2026-08-28","finish":"2026-09-02","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #33","start":"2026-09-01","finish":"2026-09-04","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #31","start":"2026-09-01","finish":"2026-09-04","mold":"Mold 4","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 9 — Target: Sep 04, 2026 | Units #28–#33 (6 units)","start":"2026-09-04","finish":"2026-09-04","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #36","start":"2026-09-03","finish":"2026-09-08","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #34","start":"2026-09-03","finish":"2026-09-08","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #37","start":"2026-09-07","finish":"2026-09-10","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #35","start":"2026-09-07","finish":"2026-09-10","mold":"Mold 4","status":"Planned","type":"Unit"},{"name":"CabKit #38","start":"2026-09-09","finish":"2026-09-14","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #39","start":"2026-09-11","finish":"2026-09-16","mold":"Mold 4","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 10 — Target: Sep 16, 2026 | Units #34–#39 (6 units)","start":"2026-09-16","finish":"2026-09-16","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #40","start":"2026-09-09","finish":"2026-09-14","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #41","start":"2026-09-11","finish":"2026-09-16","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #44","start":"2026-09-15","finish":"2026-09-18","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #42","start":"2026-09-15","finish":"2026-09-18","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #45","start":"2026-09-17","finish":"2026-09-22","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #43","start":"2026-09-17","finish":"2026-09-22","mold":"Mold 4","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 11 — Target: Sep 22, 2026 | Units #40–#45 (6 units)","start":"2026-09-22","finish":"2026-09-22","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #48","start":"2026-09-21","finish":"2026-09-24","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #46","start":"2026-09-21","finish":"2026-09-24","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #49","start":"2026-09-23","finish":"2026-09-28","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #47","start":"2026-09-23","finish":"2026-09-28","mold":"Mold 4","status":"Planned","type":"Unit"},{"name":"CabKit #50","start":"2026-09-25","finish":"2026-09-30","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #51","start":"2026-09-29","finish":"2026-10-02","mold":"Mold 4","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 12 — Target: Oct 02, 2026 | Units #46–#51 (6 units)","start":"2026-10-02","finish":"2026-10-02","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #52","start":"2026-09-25","finish":"2026-09-30","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #53","start":"2026-09-29","finish":"2026-10-02","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #56","start":"2026-10-01","finish":"2026-10-06","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #54","start":"2026-10-01","finish":"2026-10-06","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #57","start":"2026-10-05","finish":"2026-10-08","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #55","start":"2026-10-05","finish":"2026-10-08","mold":"Mold 4","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 13 — Target: Oct 08, 2026 | Units #52–#57 (6 units)","start":"2026-10-08","finish":"2026-10-08","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #60","start":"2026-10-07","finish":"2026-10-12","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #58","start":"2026-10-07","finish":"2026-10-12","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #61","start":"2026-10-09","finish":"2026-10-14","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #59","start":"2026-10-09","finish":"2026-10-14","mold":"Mold 4","status":"Planned","type":"Unit"},{"name":"CabKit #62","start":"2026-10-13","finish":"2026-10-16","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #63","start":"2026-10-15","finish":"2026-10-20","mold":"Mold 4","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 14 — Target: Oct 20, 2026 | Units #58–#63 (6 units)","start":"2026-10-20","finish":"2026-10-20","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #64","start":"2026-10-13","finish":"2026-10-16","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #65","start":"2026-10-15","finish":"2026-10-20","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #68","start":"2026-10-19","finish":"2026-10-22","mold":"Mold 1","status":"Planned","type":"Unit"},{"name":"CabKit #66","start":"2026-10-19","finish":"2026-10-22","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #69","start":"2026-10-21","finish":"2026-10-26","mold":"Mold 2","status":"Planned","type":"Unit"},{"name":"CabKit #67","start":"2026-10-21","finish":"2026-10-26","mold":"Mold 4","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 15 — Target: Oct 26, 2026 | Units #64–#69 (6 units)","start":"2026-10-26","finish":"2026-10-26","mold":"","status":"","type":"Ship Set Milestone"},{"name":"CabKit #70","start":"2026-10-23","finish":"2026-10-28","mold":"Mold 3","status":"Planned","type":"Unit"},{"name":"CabKit #71","start":"2026-10-27","finish":"2026-10-30","mold":"Mold 4","status":"Planned","type":"Unit"},{"name":"⚑ Ship Set 16 — Target: Oct 30, 2026 | Units #70–#71 (2 units)","start":"2026-10-30","finish":"2026-10-30","mold":"","status":"","type":"Ship Set Milestone"}]};
+
+let currentScenario = '4 Molds';
+let currentDate = '2026-10-30';
+let tlFilter = 'all';
+let tlSearch = '';
+let programTarget = 71;
+let showCompleted = true;
+let activeQuarter = null;
+
+const QUARTERS = [
+  { label: 'Q3 \'26', date: '2026-09-30' },
+  { label: 'Q4 \'26', date: '2026-12-31' },
+  { label: 'Q1 \'27', date: '2027-03-31' },
+  { label: 'Q2 \'27', date: '2027-06-30' },
+];
+
+const RAMP_LABELS = {
+  71:   'Phase 1 — Short Run Spin Up',
+  602:  '2026 Annual Target',
+  1190: 'Through 2027',
+  2911: 'Through 2028',
+  4928: 'Through 2029',
+  6009: 'Through 2030',
+};
+
+function selectTarget(val) {
+  programTarget = parseInt(val, 10);
+  const label = RAMP_LABELS[programTarget] || '';
+  document.getElementById('ctxTotalUnits').textContent = programTarget.toLocaleString();
+  document.getElementById('ctxTotalLabel').textContent = label;
+  document.getElementById('headerBadgeUnits').textContent = programTarget.toLocaleString() + ' Units';
+  updateDashboard();
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function fmtDateShort(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year:'2-digit' });
+}
+
+function getShipSets(scenario) {
+  return SCENARIOS[scenario].filter(r => r.type === 'Ship Set Milestone').sort((a,b)=>a.finish.localeCompare(b.finish));
+}
+function getUnits(scenario) {
+  return SCENARIOS[scenario].filter(r => r.type === 'Unit').sort((a,b)=>a.finish.localeCompare(b.finish));
+}
+function getCompletionDate(scenario) {
+  const ss = getShipSets(scenario);
+  return ss.length ? ss[ss.length-1].finish : '';
+}
+
+function buildQuarterlyBtns() {
+  document.getElementById('quickBtns').innerHTML = QUARTERS.map((q, i) =>
+    `<button class="qbtn${activeQuarter === q.date ? ' active-q' : ''}" onclick="setQuarterDate(${i})">${q.label}</button>`
+  ).join('');
+}
+
+function setQuarterDate(idx) {
+  const q = QUARTERS[idx];
+  activeQuarter = q.date;
+  document.getElementById('targetDate').value = q.date;
+  currentDate = q.date;
+  buildQuarterlyBtns();
+  updateDashboard();
+}
+
+function toggleCompleted(btn) {
+  showCompleted = !showCompleted;
+  btn.classList.toggle('active', showCompleted);
+  btn.textContent = showCompleted ? '✓ Completed' : '○ Completed';
+  renderTimeline();
+}
+
+function updateDashboard() {
+  currentDate = document.getElementById('targetDate').value;
+  if (!currentDate) return;
+
+  const units = getUnits(currentScenario);
+  const shipSets = getShipSets(currentScenario);
+  const completionDate = getCompletionDate(currentScenario);
+  const delivered = units.filter(u => u.finish <= currentDate);
+  const deliveredSS = shipSets.filter(ss => ss.finish <= currentDate);
+  const nextSS = shipSets.find(ss => ss.finish > currentDate);
+  const nextSSIdx = nextSS ? shipSets.findIndex(ss => ss.finish === nextSS.finish) : -1;
+  const pct = Math.min(100, Math.round((delivered.length / programTarget) * 100));
+  const remaining = Math.max(0, programTarget - delivered.length);
+
+  document.getElementById('ctxFullDate').textContent = fmtDate(completionDate);
+
+  // KPIs
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="kpi-card navy">
+      <div class="kpi-lbl">CabKits Delivered</div>
+      <div class="kpi-val">${delivered.length}</div>
+      <div class="kpi-sub">of ${programTarget.toLocaleString()} target · by ${fmtDate(currentDate)}</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-lbl">Ship Sets Complete</div>
+      <div class="kpi-val">${deliveredSS.length}</div>
+      <div class="kpi-sub">of 16 total ship sets</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-lbl">Program Progress</div>
+      <div class="kpi-val">${pct}%</div>
+      <div class="kpi-sub">${remaining.toLocaleString()} unit${remaining!==1?'s':''} remaining to target</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-lbl">Next Ship Set</div>
+      <div class="kpi-val date-size">${nextSS ? 'SS ' + (nextSSIdx+1) + ' — ' + fmtDate(nextSS.finish) : 'Program Complete ✓'}</div>
+      <div class="kpi-sub">${nextSS ? 'Next milestone after target date' : 'All ship sets for this phase delivered'}</div>
+    </div>
+  `;
+
+  // Progress
+  document.getElementById('progressCard').innerHTML = `
+    <div class="prog-header">
+      <div class="prog-label">Throughput by ${fmtDate(currentDate)} — ${currentScenario} · Target: ${programTarget.toLocaleString()} units (${RAMP_LABELS[programTarget]||'Custom'})</div>
+      <div class="prog-pct">${pct}%</div>
+    </div>
+    <div class="prog-track"><div class="prog-fill" style="width:${pct}%"></div></div>
+    <div class="prog-footer">
+      <span>Start — Apr 2026</span>
+      <span>${delivered.length.toLocaleString()} of ${programTarget.toLocaleString()} units complete</span>
+      <span>Full Run — ${fmtDate(completionDate)}</span>
+    </div>
+  `;
+
+  // Ship Sets
+  document.getElementById('ssGrid').innerHTML = shipSets.map((ss, i) => {
+    const done = ss.finish <= currentDate;
+    const isNext = !done && i === nextSSIdx;
+    const m = ss.name.match(/Units (#[\d]+[–\-#\d]*)/);
+    const unitsStr = m ? 'Units ' + m[1] : '';
+    return `
+      <div class="ss-card ${done ? 'done' : isNext ? 'next-up' : 'upcoming'}">
+        <div class="ss-card-num">Ship Set ${i+1}</div>
+        <div class="ss-card-date">${fmtDateShort(ss.finish)}</div>
+        <div class="ss-card-units">${unitsStr}</div>
+        <div class="ss-badge ${done?'done':isNext?'next':'later'}">${done?'Done':isNext?'Next':'Later'}</div>
+      </div>`;
+  }).join('');
+
+  renderTimeline();
+}
+
+function renderTimeline() {
+  const rows = SCENARIOS[currentScenario];
+  const sorted = [...rows].sort((a,b) => a.finish.localeCompare(b.finish)||a.start.localeCompare(b.start));
+  const search = tlSearch.toLowerCase();
+  const filtered = sorted.filter(r => {
+    const mf = tlFilter === 'all' || r.type === tlFilter;
+    const ms = !search || r.name.toLowerCase().includes(search) || (r.mold && r.mold.toLowerCase().includes(search));
+    const mc = showCompleted || r.finish > currentDate || r.type === 'Setup Task';
+    return mf && ms && mc;
+  });
+
+  let pastCutoff = false;
+  const tbody = document.getElementById('tlBody');
+  tbody.innerHTML = filtered.map(r => {
+    const isMilestone = r.type === 'Ship Set Milestone';
+    const isDone = r.finish <= currentDate;
+    const isBeyond = r.finish > currentDate && r.type !== 'Setup Task';
+
+    let sep = '';
+    if (!pastCutoff && isBeyond) {
+      pastCutoff = true;
+      sep = `<tr class="cutoff-divider"><td colspan="6"><div class="cutoff-bar"></div></td></tr>
+             <tr class="cutoff-label"><td colspan="6">— Projected beyond ${fmtDate(currentDate)} —</td></tr>`;
+    }
+
+    const rowClass = isMilestone ? 'row-milestone' : isDone ? 'row-done' : '';
+    const mn = r.mold ? r.mold.replace('Mold ','') : '';
+    const moldBadge = r.mold ? `<span class="badge badge-m${mn}">${r.mold}</span>` : '—';
+    const statusBadge = r.status === 'Complete' ? `<span class="badge badge-done">Complete</span>`
+      : r.status === 'Planned' ? `<span class="badge badge-planned">Planned</span>` : '—';
+    const typeBadge = isMilestone ? `<span class="badge badge-milestone">Ship Set</span>`
+      : r.type === 'Setup Task' ? `<span class="badge badge-setup">Setup</span>`
+      : `<span style="font-size:11px;color:var(--text-muted)">Unit</span>`;
+
+    return `${sep}<tr class="${rowClass}">
+      <td>${r.name}</td>
+      <td>${moldBadge}</td>
+      <td style="color:var(--text-muted)">${fmtDate(r.start)}</td>
+      <td style="font-weight:${isMilestone?'700':'400'}">${fmtDate(r.finish)}</td>
+      <td>${statusBadge}</td>
+      <td>${typeBadge}</td>
+    </tr>`;
+  }).join('');
+}
+
+function selectScenario(scenario, btn) {
+  currentScenario = scenario;
+  document.querySelectorAll('.mold-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateDashboard();
+}
+function filterTimeline(val) { tlSearch = val; renderTimeline(); }
+function setTlFilter(f, btn) {
+  tlFilter = f;
+  document.querySelectorAll('.tl-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTimeline();
+}
+
+// ══ MOLD SCALE PROJECTOR DATA ══
+// Fixed phase: Units 1–27 always complete ~Aug 25, 2026 (144 days from Apr 3)
+// Variable phase: 44 remaining units at ~5.5 days/unit/mold = 242 days ÷ n molds
+// Confirmed scenarios 1–4 use actual Smartsheet schedule dates.
+const MOLD_SCALE = [
+  { molds: 1,  label: '1 Mold',  finish: '2027-04-26', days: 388, confirmed: true  },
+  { molds: 2,  label: '2 Molds', finish: '2026-12-25', days: 266, confirmed: true  },
+  { molds: 3,  label: '3 Molds', finish: '2026-11-17', days: 228, confirmed: true  },
+  { molds: 4,  label: '4 Molds', finish: '2026-10-30', days: 210, confirmed: true  },
+  { molds: 5,  label: '5 Molds', finish: '2026-10-12', days: 192, confirmed: false },
+  { molds: 6,  label: '6 Molds', finish: '2026-10-04', days: 184, confirmed: false },
+  { molds: 7,  label: '7 Molds', finish: '2026-09-29', days: 179, confirmed: false },
+  { molds: 8,  label: '8 Molds', finish: '2026-09-24', days: 174, confirmed: false },
+  { molds: 9,  label: '9 Molds', finish: '2026-09-21', days: 171, confirmed: false },
+  { molds: 10, label: '10 Molds',finish: '2026-09-18', days: 168, confirmed: false },
+  { molds: 12, label: '12 Molds',finish: '2026-09-14', days: 164, confirmed: false },
+  { molds: 15, label: '15 Molds',finish: '2026-09-10', days: 160, confirmed: false },
+  { molds: 20, label: '20 Molds',finish: '2026-09-06', days: 156, confirmed: false },
+];
+const MAX_DAYS = 388; // 1-mold = longest = 100%
+const FIXED_DAYS = 144; // Apr 3 → Aug 25 (Units 1–27, always single mold)
+const BASE_FINISH_DAYS = 388; // 1-mold completion, the 100% baseline
+
+function buildGantt() {
+  const baseline = MOLD_SCALE[0]; // 1 mold = reference point
+  document.getElementById('ganttRows').innerHTML = MOLD_SCALE.map((s, i) => {
+    const fixedPct  = (FIXED_DAYS / MAX_DAYS * 100).toFixed(1);
+    const varDays   = s.days - FIXED_DAYS;
+    const varPct    = (varDays / MAX_DAYS * 100).toFixed(1);
+    const daysSaved = baseline.days - s.days;
+    const savingsLabel = i === 0 ? '' : `<span class="gantt-savings">▲ ${daysSaved}d faster</span>`;
+    const varClass  = s.confirmed ? 'gantt-var-confirmed' : 'gantt-var-projected';
+    const dotHtml   = s.confirmed
+      ? '<span class="confirmed-dot"></span>'
+      : '<span class="proj-dot"></span>';
+    const divider   = s.molds === 4 ? '<div class="gantt-divider" title="Confirmed scenarios above · Projections below"></div>' : '';
+    return `${divider}<div class="gantt-row">
+      <div class="gantt-label">${dotHtml}${s.label}</div>
+      <div class="gantt-track">
+        <div class="gantt-fixed" style="width:${fixedPct}%"></div>
+        <div class="${varClass}" style="width:${varPct}%"></div>
+      </div>
+      <div class="gantt-date ${s.confirmed ? 'confirmed-date' : ''}">${fmtDateShort(s.finish)}</div>
+      ${savingsLabel}
+    </div>`;
+  }).join('');
+}
+
+function toggleProjector() {
+  const body = document.getElementById('projectorBody');
+  const icon = document.getElementById('projToggleIcon');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  icon.classList.toggle('open', !isOpen);
+  if (!isOpen) buildGantt();
+}
+
+// Init
+document.getElementById('targetDate').value = currentDate;
+buildQuarterlyBtns();
+updateDashboard();
+</script>
+</body>
+</html>
